@@ -43,31 +43,26 @@ ner_pipeline = pipeline("ner", model=ner_model, tokenizer=ner_tokenizer, aggrega
 LOG_FOLDER = "session_logs"
 os.makedirs(LOG_FOLDER, exist_ok=True)
 
-
 def make_safe_filename(s: str) -> str:
-    
     safe = s.strip().lower()
     safe = safe.replace(" ", "_")
     safe = "".join(c for c in safe if c.isalnum() or c in "_-")
     if not safe:
         safe = "unknown"
-    return safe[:30]  
-
-def save_full_session(tracker: Tracker):
+    return safe[:30]
 
 
+def save_full_session(tracker):
     name = tracker.get_slot("name") or ""
     age = tracker.get_slot("age") or ""
     occupation = tracker.get_slot("occupation") or ""
     interests = tracker.get_slot("interests") or ""
-
 
     if not tracker.get_slot("session_start_time"):
         tracker.slots["session_start_time"] = datetime.now().strftime("%Y%m%d_%H%M%S")
 
     session_start = tracker.get_slot("session_start_time")
 
-    # Identificatore sessione di conversazione
     user_signature = make_safe_filename(f"{name}_{age}_{session_start}")
     if not user_signature:
         user_signature = "unknown_user"
@@ -75,27 +70,52 @@ def save_full_session(tracker: Tracker):
     session_file = os.path.join(LOG_FOLDER, f"{user_signature}.txt")
     metadata_file = os.path.join(LOG_FOLDER, f"{user_signature}_metadata.json")
 
+    
+    form_messages = []
+    for event in tracker.events:
+        if event.get("event") == "user":
+            form_messages.append({"role": "user", "content": event.get("text", "")})
+        elif event.get("event") == "bot":
+            form_messages.append({"role": "bot", "content": event.get("text", "")})
 
-    messages = tracker.get_slot("messages_log") or []
+    
+    messages_log = tracker.get_slot("messages_log") or []
+
+    
+    seen_contents = set()
+    all_messages = []
+
+    def normalize_role(role):
+        return "bot" if role in ["bot", "assistant", "system"] else "user"
+
+    for msg in form_messages + messages_log:
+        text = (msg.get("content") or "").strip()
+        if not text:
+            continue
+        role = normalize_role(msg.get("role", "user"))
+        if text not in seen_contents:
+            seen_contents.add(text)
+            all_messages.append({"role": role, "content": text})
 
 
     with open(session_file, "w", encoding="utf-8") as f:
-        for msg in messages:
+        for msg in all_messages:
             f.write(f"{msg['role'].upper()}: {msg['content']}\n")
 
-
+    
     metadata = {
         "user_info": {"name": name, "age": age, "occupation": occupation, "interests": interests},
         "session_start": session_start,
         "last_update": datetime.now().isoformat(),
+        "num_messages": len(all_messages),
     }
 
     with open(metadata_file, "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=4, ensure_ascii=False)
 
-    print(f"[INFO] Sessione salvata/aggiornata per utente '{user_signature}' in {session_file}")
+    print(f"[INFO] Sessione aggiornata per utente '{user_signature}' in {session_file}")
 
-    
+
 occupations = [
     # Students / Education
     "High school student", "University student", "Postgraduate student",
@@ -215,7 +235,6 @@ def classify_occupations_instructor(user_input, threshold=0.8, top_k=None):
         occupation_score_pairs = occupation_score_pairs[:top_k]
 
     return [label for label, score in occupation_score_pairs] if occupation_score_pairs else ["Other"]
-
 
 
 # === Lista di interessi ===

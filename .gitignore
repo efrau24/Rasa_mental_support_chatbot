@@ -34,6 +34,7 @@ training_results_2/
 # Dataset (se grande o privato)
 data/*.csv
 datasets/
+session_logs/
 
 # Script temporanei o di test
 test_scripts/
