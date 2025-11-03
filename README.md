@@ -1,4 +1,4 @@
-# 🧠 Mental Health Chatbot
+# 🧠 Mental Support Chatbot
 
 Chatbot dedicato al supporto della salute mentale e al cambiamento comportamentale, finalizzato al raccoglimento di informazioni utili alla definizione del profilo psicologico dell'utente.  
 
