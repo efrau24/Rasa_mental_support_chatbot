@@ -14,8 +14,8 @@ from sklearn.metrics import (
 )
 # Path modelli 
 TEST_CSV_PATH = "./datasets/test_full.csv"
-MODEL1_PATH = "./results/model1/best_model"
-MODEL2_PATH = "./results/model2/best_model"
+MODEL1_PATH = "./model1/best_model"
+MODEL2_PATH = "./model2/best_model"
 
 # =====================
 # 1. Caricamento e inizializzazione modelli
@@ -28,6 +28,7 @@ model2 = RobertaForSequenceClassification.from_pretrained(MODEL2_PATH)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model1.to(device).eval()
 model2.to(device).eval()
+
 
 
 # =====================

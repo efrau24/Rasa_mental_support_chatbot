@@ -13,11 +13,6 @@ rules:
     - action: utter_personalized_greeting
 
 
-- rule: Respond to goodbye
-  steps:
-    - intent: goodbye
-    - action: utter_goodbye
-
 # form rules
 
 - rule: User info form completion

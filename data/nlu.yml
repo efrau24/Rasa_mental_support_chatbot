@@ -88,6 +88,8 @@ nlu:
     - [43](age)
     - I am [60](age)
     - I'm [23](age)
+    - Nice to meet you, I’m [35](age)
+    - Nice to meet you too! I’m [35](age)
 
 
 
