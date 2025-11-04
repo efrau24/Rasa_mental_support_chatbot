@@ -1291,6 +1291,7 @@ class ValidateInterviewForm(FormValidationAction):
                     You are an empathetic mental health support chatbot.
                     The user has shared enough information, and your task is to respond with a short, kind, and empathetic closing message.
                     The last user message was: "{user_input}"
+                    Conversation so far: {json.dumps(messages_log, indent=4)}
                 """
                 model = get_model()
                 headers = {"Content-Type": "application/json"}
@@ -1298,7 +1299,7 @@ class ValidateInterviewForm(FormValidationAction):
                     "model": model, 
                     "messages": [{"role": "user", "content": prompt}],
                     "temperature": 0.1, 
-                    "max_tokens": 150
+                    "max_tokens": 200
                     }
 
                 try:
@@ -1309,6 +1310,11 @@ class ValidateInterviewForm(FormValidationAction):
                     reply = "Thank you for opening up today. I’m here whenever you’d like to talk again."
 
                 dispatcher.utter_message(text=reply)
+                messages_log.append({
+                    "role": "assistant",
+                    "content": reply
+                })
+                
                 return {
                     "user_message": user_input,
                     "message_count": count,
@@ -1504,6 +1510,7 @@ class ActionSubmitInterviewForm(Action):
             "temperature": 0.2,
             "max_tokens": 300
             }
+        
 
         try:
             response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
@@ -1516,5 +1523,11 @@ class ActionSubmitInterviewForm(Action):
             reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
 
         dispatcher.utter_message(text=reply)
+
+        messages_log.append({
+            "role": "assistant",
+            "content": reply
+        })
+        save_full_session(tracker)
 
         return []
