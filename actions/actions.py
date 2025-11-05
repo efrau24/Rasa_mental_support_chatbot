@@ -514,7 +514,7 @@ class ValidateUserInfoForm(FormValidationAction):
     ) -> Dict[Text, Any]:
 
         user_message = tracker.latest_message.get("text").strip()
-        results = classify_interests_with_macro(slot_value, threshold=0.5, top_k=3)
+        # results = classify_interests_with_macro(slot_value, threshold=0.5, top_k=3)
         # macro_labels = results["macro_labels"]
         # fine_labels = results["fine_labels"]
 
@@ -602,391 +602,7 @@ class ActionSubmitFormUserInfo(Action):
             FollowupAction("action_start_interview")
         ]
 
-# class ActionExtractIssues(Action):
-#     def name(self) -> Text:
-#         return "action_extract_issues"
-    
 
-
-#     def build_prompt(self, message) -> str:
-#         return f"""You are an empathetic health support chatbot. 
-#             The user has just told you something about their mental health or lifestyle.
-
-#             Here is what they've shared: "{message}"
-
-#             Your task:
-#             Identify ALL relevant issues in their message and classify them into one or more of these categories:
-#             - anxiety
-#             - depression
-#             - stress
-#             - insomnia
-#             - low self-esteem
-#             - panic attacks
-#             - burnout
-#             - loneliness
-#             - OCD
-#             - PTSD
-#             - drug addiction
-#             - alcoholism
-#             - smoking
-#             - gambling addiction
-#             - internet addiction
-#             - social media addiction
-#             - binge eating
-#             - obesity
-#             - anorexia
-#             - poor nutrition
-#             - lifestyle issues
-
-#             Rules:
-#             - If the user mentions a chain of cause and effect, keep only the primary/root cause (the issue that explains or generates the others).
-#             - If multiple independent issues are mentioned, include all of them.
-#             - Do not infer or guess issues that are not explicitly mentioned.
-#             - If no issues are mentioned, return an empty list.
-#             - Return only the JSON object, no extra text.
-
-#             Priority rules:
-#             - Anxiety > Insomnia
-#             - Depression > Low self-esteem
-#             - Burnout > Stress
-
-#             Examples:
-#             - "I can't sleep because I feel anxious" → {{"labels": ["anxiety"]}}
-#             - "I drink a lot because I'm stressed" → {{"labels": ["stress"]}}
-#             - "I feel lonely and anxious" → {{"labels": ["loneliness", "anxiety"]}}
-#             - "I eat too much junk food" → {{"labels": ["poor nutrition"]}}
-#             - "I have trouble sleeping" → {{"labels": ["insomnia"]}}
-
-#             Return your answer strictly in this JSON format:
-#             {{
-#             "labels": ["<category1>", "<category2>", ...]
-#             }}"""
-    
-    
-#     def run(
-#         self,
-#         dispatcher: CollectingDispatcher,
-#         tracker: Tracker,
-#         domain: Dict[Text, Any]
-#     ) -> List[Dict[Text, Any]]:
-
-#         last_message = tracker.latest_message.get("text", "")
-#         if not last_message:
-#             return []
-
-#         prompt = self.build_prompt(last_message)
-#         model = get_model()
-#         headers = {"Content-Type": "application/json"}
-#         payload = {
-#             "model": model,
-#             "messages": [
-#                 {"role": "user", "content": prompt}
-#             ],
-#             "temperature": 0.5
-#         }
-
-#         try:
-#             response = requests.post(
-#                 "http://localhost:1234/v1/chat/completions",
-#                 json=payload,
-#                 headers=headers
-#             )
-#             if response.status_code == 200:
-#                 content = response.json()['choices'][0]['message']['content']
-#                 try:
-#                     data = json.loads(content)
-#                     labels = data.get("labels", [])
-#                     if not isinstance(labels, list):
-#                         labels = [labels]
-#                 except Exception as e:
-#                     print(f"JSON parsing error: {e}")
-#                     labels = []
-#             else:
-                
-#                 labels = []
-
-#         except Exception as e:
-#             print(f"Error: {e}")
-#             labels = []
-
-        
-
-#         old_issues = tracker.get_slot("issues_profile") or {}
-#         new_issues = {label: {} for label in labels}
-#         merged_issues = {**old_issues, **new_issues}
-
-#         return [SlotSet("issues_profile", merged_issues)]
-    
-
-
-# class ActionAskFocusIssue(Action):
-#     def name(self) -> Text:
-#         return "action_ask_focus_issue"
-    
-#     def run(
-#         self,
-#         dispatcher: CollectingDispatcher,
-#         tracker: Tracker,
-#         domain: Dict[Text, Any]
-#     ) -> List[Dict[Text, Any]]:
-        
-#         issues_profile  = tracker.get_slot("issues_profile") or {}
-#         pending_issues = []
-
-        
-#         if isinstance(issues_profile, list):
-#             issues_profile = {i: {} for i in issues_profile}
-        
-#         for issue, details in issues_profile.items():
-#             if not details:  
-#                 pending_issues.append(issue)
-
-#         if not pending_issues:     
-#             dispatcher.utter_message(
-#                 text="Now, if there's anything else you'd like to discuss or explore, feel free to let me know!"
-#             )
-#             return []
-#         elif len(pending_issues) == 1:
-#             issue = pending_issues[0]
-#             dispatcher.utter_message(
-#                 text=f"It sounds like you might be dealing with {issue}. Let's focus on that for now."
-#             )
-#             return [
-#                 SlotSet("current_issue", issue),
-#                 FollowupAction(name="action_activate_form")
-#             ]
-#         else:
-#             issues_list = ", ".join(pending_issues)
-#             dispatcher.utter_message(
-#                 text=(
-#                     f"It sounds like there are several things on your mind: {issues_list}. "
-#                     f"Which one feels most important to focus on right now?"
-#                 )
-#             )
-                
-#         return []
-
-# class ActionSetCurrentIssue(Action):
-#     def name(self) -> str:
-#         return "action_set_current_issue"
-
-#     def run(
-#         self,
-#         dispatcher: CollectingDispatcher,
-#         tracker: Tracker,
-#         domain: Dict[Text, Any]
-#     ) -> List[Dict[Text, Any]]:
-
-#         user_text = tracker.latest_message.get("text")
-
-        
-#         issue = classify_health_condition_instructor(user_text, threshold=0.8, top_k=1)
-#         if isinstance(issue, list):
-#             issue = issue[0] if issue else None
-
-#         issues_profile = tracker.get_slot("issues_profile") or {}
-
-#         if isinstance(issues_profile, dict):
-#             remaining_issues = {k: v for k, v in issues_profile.items() if k != issue}
-#         elif isinstance(issues_profile, list):
-#             remaining_issues = [i for i in issues_profile if i != issue]
-#         else:
-#             remaining_issues = []
-
-#         return [
-#             SlotSet("current_issue", issue),
-#             SlotSet("remaining_issues", remaining_issues),
-#             FollowupAction(name="action_activate_form")
-#         ]
-
-
-# form_mapping = {
-#             # Mood & mental health
-#             "anxiety": "mood_form",
-#             "depression": "mood_form",
-#             "stress": "mood_form",
-#             "panic attacks": "mood_form",
-#             "burnout": "mood_form",
-#             "loneliness": "mood_form",
-#             "ocd": "mood_form",
-#             "ptsd": "mood_form",
-#             "low self-esteem": "self_esteem_form",
-
-#             # Sleep
-#             "insomnia": "sleep_form",
-
-#             # Addictions
-#             "drug addiction": "addiction_form",
-#             "alcoholism": "addiction_form",
-#             "smoking": "addiction_form",
-#             "gambling addiction": "addiction_form",
-#             "internet addiction": "addiction_form",
-#             "social media addiction": "addiction_form",
-
-#             # Nutrition & lifestyle
-#             "binge eating": "nutrition_form",
-#             "obesity": "nutrition_form",
-#             "anorexia": "nutrition_form",
-#             "poor nutrition": "nutrition_form",
-#             "lifestyle issues": "lifestyle_form",
-#             "low motivation": "motivation_form",
-#         }
-
-# class ActionActivateForm(Action):
-#     def name(self) -> str:
-#         return "action_activate_form"
-    
-#     def run(
-#         self,
-#         dispatcher: CollectingDispatcher,
-#         tracker: Tracker,
-#         domain: Dict[Text, Any]
-#     ) -> List[Dict[Text, Any]]:
-
-#         current_issue = tracker.get_slot("current_issue")
-
-#         if isinstance(current_issue, list):
-#             current_issue = current_issue[0] if current_issue else None
-
-#         if not current_issue:
-#             return []
-
-#         current_issue = current_issue.lower()
-#         form_to_activate = form_mapping.get(current_issue)
-
-#         if not form_to_activate:
-#             return []
-
-       
-#         if tracker.active_loop.get('name') == form_to_activate:
-#             return []
-
-        
-#         return [ActiveLoop(name=form_to_activate),
-#                 FollowupAction(name=form_to_activate)]
-    
-
-# class ActionSaveIssueProfile(Action):
-#     def name(self) -> Text:
-#         return "action_save_issue_profile"
-
-#     def run(
-#         self,
-#         dispatcher: CollectingDispatcher,
-#         tracker: Tracker,
-#         domain: Dict[Text, Any],
-#     ) -> List[Dict[Text, Any]]:
-
-#         current_issue = tracker.get_slot("current_issue")
-#         issues_profile = tracker.get_slot("issues_profile") or {}
-
-#         if isinstance(current_issue, list):
-#             current_issue = current_issue[0] if current_issue else None
-
-#         if not current_issue:
-#             return []
-
-
-        
-#         form_slots = {
-#             "mood_form": ["symptom_description", "duration", "triggers", "impact", "coping_strategies"],
-#             "sleep_form": ["sleep_pattern", "sleep_quality", "sleep_duration", "bedtime_routine", "sleep_impact"],
-#             "intrusive_thoughts_form": ["intrusive_thoughts_description", "frequency", "intensity", "avoidance", "intrusive_thoughts_impact"],
-#             "addiction_form": ["substance_or_behavior", "addiction_frequency", "addiction_triggers", "attempts_to_quit", "addiction_impact"],
-#             "nutrition_form": ["eating_habits", "body_image", "nutrition_physical_activity", "nutrition_duration", "nutrition_impact"],
-#             "motivation_form": ["motivation_level", "barriers", "goals", "support_system", "strategies_to_increase_motivation"],
-#             "self_esteem_form": ["self_perception", "negative_self_talk", "social_interactions", "achievements", "self_esteem_coping_strategies"],
-#             "lifestyle_form": ["daily_routine", "lifestyle_physical_activity", "sleep_habits", "lifestyle_nutrition", "stress_management"],
-#         }
-
-        
-#         form_name = form_mapping.get(current_issue)
-#         if not form_name:
-#             return []
-
-#         slots_to_save = form_slots.get(form_name, [])
-
-        
-#         issue_data = {
-#             slot: tracker.get_slot(slot)
-#             for slot in slots_to_save
-#             if tracker.get_slot(slot) is not None
-#         }
-        
-#         existing_data = issues_profile.get(current_issue, {})
-        
-#         updated_data = {**existing_data, **issue_data}
-
-#         issues_profile[current_issue] = updated_data
-
-#         return [SlotSet("issues_profile", issues_profile)]
-
-
-
-    
-# class ActionSubmitIssueForm(Action):
-
-#     def name(self) -> str:
-#         return "action_submit_issue_form"
-    
-
-#     def build_prompt(self, current_issue: str, issue_data: Dict[str, Any]) -> str:
-#         issue_summary = "\n".join(
-#             [f"- {slot.replace('_', ' ').capitalize()}: {value}" for slot, value in issue_data.items()]
-#         ) if issue_data else "No further details were provided."
-
-#         return f"""You are an empathetic mental health support chatbot. The user has just completed a set of questions about their current 
-#         issue. The user don't know if the issue is true or not, it's just a predict, so avoid clinical labels or diagnoses.
-
-#             Here is what they've shared:
-
-#                 - Current issue: {current_issue}
-#                                  {issue_summary}
-
-#             Please:
-#                 1. Summarize the user’s concern in simple and compassionate terms.
-#                 2. Suggest a gentle, preliminary interpretation of what might be happening 
-#                 (avoid clinical labels or diagnoses, just possible patterns).
-#                 3. Offer one or two supportive next steps the user might consider.
-
-#             Keep the tone warm, empathetic, non-judgmental, and supportive. 
-#             Do not introduce yourself, do not greet, and do not repeat your role — just respond naturally as if continuing an ongoing conversation.
-#             """
-
-#     async def run(self, dispatcher: CollectingDispatcher,
-#             tracker: Tracker,
-#             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
-#         current_issue = tracker.get_slot("current_issue")
-#         issues_profile = tracker.get_slot("issues_profile") or {}
-#         issue_data = issues_profile.get(current_issue, {})
-
-#         prompt = self.build_prompt(current_issue, issue_data)
-
-#         model = get_model()
-#         headers = { "Content-Type": "application/json" }
-#         payload = {
-#             "model": model,
-#             "messages": [
-#                 {"role": "user", "content": prompt}
-#             ],
-#             "temperature": 0.2
-#         }
-
-#         try:
-#             response = requests.post("http://localhost:1234/v1/chat/completions", json=payload, headers=headers)
-#             if response.status_code == 200:
-#                 reply = response.json()['choices'][0]['message']['content']
-#             else:
-#                 reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
-#         except Exception as e:
-#             print(f"Error: {e}")
-#             reply = "Thanks for completing the form! If you’d like, feel free to tell me if there’s anything you’d like to work on or explore together."
-
-#         dispatcher.utter_message(text=reply)
-        
-#         return []
-    
 
 
 class ActionStartInterview(Action):
@@ -996,8 +612,6 @@ class ActionStartInterview(Action):
     def run(self, dispatcher: CollectingDispatcher,
             tracker: Tracker,
             domain: Dict[Text, Any]) -> List[Dict[Text, Any]]:
-
-        # dispatcher.utter_message(text="How are you feeling today? Feel free to share anything on your mind.")
 
         return [
             SlotSet("user_message", None),
@@ -1291,14 +905,20 @@ class ValidateInterviewForm(FormValidationAction):
                     You are an empathetic mental health support chatbot.
                     The user has shared enough information, and your task is to respond with a short, kind, and empathetic closing message.
                     The last user message was: "{user_input}"
+                    
                     Conversation so far: {json.dumps(messages_log, indent=4)}
+
+                    Guidelines:
+                    - Keep it brief (1-2 sentences).
+                    - Be warm and appreciative of the user's openness.
+                    - Avoid asking further questions or introducing new topics.
                 """
                 model = get_model()
                 headers = {"Content-Type": "application/json"}
                 payload = {
                     "model": model, 
                     "messages": [{"role": "user", "content": prompt}],
-                    "temperature": 0.1, 
+                    "temperature": 0.2, 
                     "max_tokens": 200
                     }
 
@@ -1332,7 +952,7 @@ class ValidateInterviewForm(FormValidationAction):
                     Think about your chat with the person :{json.dumps(messages_log, indent=4)} 
                     And the profile you are building based on the conversation: {json.dumps(profile_data, indent=4)}
                     
-                    Your goal is to generate a response that helps identify the user's potential mental health concerns,
+                    Your goal is to generate a response that helps identify the user's potential mental health conditions,
                     asking only for information needed to confirm or rule them out.
                     Do not mention your goal or role in the conversation; ask questions naturally as part of the chat.
 
@@ -1464,24 +1084,33 @@ class ActionSubmitInterviewForm(Action):
     def name(self) -> str:
         return "action_submit_interview_form"
 
-    def build_prompt(self, mood, personality_traits, lifestyle, social_and_relationships, motivation, thought_patterns, possible_disorders, messages_log) -> str:
+    def build_prompt(self, mood, personality_traits, lifestyle, social_and_relationships, motivation, thought_patterns,possible_disorders, messages_log) -> str:
             return f"""            
             You are a professional psychologist and behavioral scientist. 
             
             This is a conversation between a person and a chatbot: {messages_log}
+            This is the psychological profile inferred through a machine learning–based analysis of the user’s conversation with the chatbot:
+                - Mood: {mood}
+                - Personality Traits: {personality_traits}
+                - Lifestyle: {lifestyle}
+                - Social and Relationships: {social_and_relationships}
+                - Motivation: {motivation}
+                - Thought Patterns: {thought_patterns}
+                - Possible Disorders: {possible_disorders}
+
              
                Which kind of psychological profile of the person emerges from the conversation? 
                Is he possibly experiencing any of those conditions?
-                Anxiety disorders
-                Depressive disorders
-                Post-traumatic stress disorder (PTSD)
-                Obsessive-compulsive disorder (OCD)
-                Bipolar disorder
-                Schizophrenia and related psychotic disorders
-                Attention-deficit/hyperactivity disorder (ADHD)
-                Eating disorders
-                Substance use disorders
-                Personality disorders
+                    - Anxiety disorders
+                    - Depressive disorders
+                    - Post-traumatic stress disorder (PTSD)
+                    - Obsessive-compulsive disorder (OCD)
+                    - Bipolar disorder
+                    - Schizophrenia and related psychotic disorders
+                    - Attention-deficit/hyperactivity disorder (ADHD)
+                    - Eating disorders
+                    - Substance use disorders
+                    - Personality disorders
             """
     
     def run(self, dispatcher: CollectingDispatcher,
@@ -1495,7 +1124,7 @@ class ActionSubmitInterviewForm(Action):
         social_and_relationships = tracker.get_slot("social_and_relationships") or [],
         motivation = tracker.get_slot("motivation") or [],
         thought_patterns = tracker.get_slot("thought_patterns") or [],
-        possible_disorders = tracker.get_slot("possible_disorders") or []
+        possible_disorders = tracker.get_slot("possible_disorders") or [],
         messages_log = tracker.get_slot("messages_log") or []
         
         prompt = self.build_prompt(mood, personality_traits, lifestyle, social_and_relationships, motivation, thought_patterns, possible_disorders, messages_log)
@@ -1528,6 +1157,30 @@ class ActionSubmitInterviewForm(Action):
             "role": "assistant",
             "content": reply
         })
+        
+        profile_data = {
+            "mood": mood,
+            "personality_traits": personality_traits,
+            "lifestyle": lifestyle,
+            "social_and_relationships": social_and_relationships,
+            "motivation": motivation,
+            "thought_patterns": thought_patterns,
+            "possible_disorders": possible_disorders,
+        }
+        
+        profile_str = "PROFILE_DATA: " + json.dumps(profile_data, ensure_ascii=False, indent=2)
+
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        profile_message_content = f"{profile_str}\n_Saved at: {timestamp}_"
+
+        messages_log.append({
+            "role": "assistant",
+            "content": profile_message_content
+        })
+
+       
         save_full_session(tracker)
+
+
 
         return []
